@@ -17,7 +17,6 @@ def read_doctors(
     db: Session = Depends(get_db),
     skip: int = 0,
     limit: int = 100,
-    current_user: User = Depends(get_current_user),
 ) -> Any:
     """
     Retrieve doctors.
@@ -30,7 +29,6 @@ def create_doctor(
     *,
     db: Session = Depends(get_db),
     doctor_in: DoctorCreate,
-    current_user: User = Depends(get_current_staff),
 ) -> Any:
     """
     Create new doctor.
@@ -57,7 +55,6 @@ def read_doctor(
     *,
     db: Session = Depends(get_db),
     id: int,
-    current_user: User = Depends(get_current_user),
 ) -> Any:
     """
     Get doctor by ID with availability.
@@ -73,7 +70,6 @@ def update_doctor(
     db: Session = Depends(get_db),
     id: int,
     doctor_in: DoctorUpdate,
-    current_user: User = Depends(get_current_staff),
 ) -> Any:
     """
     Update a doctor.
@@ -105,7 +101,6 @@ def delete_doctor(
     *,
     db: Session = Depends(get_db),
     id: int,
-    current_user: User = Depends(get_current_staff),
 ) -> Any:
     """
     Delete a doctor.
@@ -130,7 +125,6 @@ def add_doctor_availability(
     db: Session = Depends(get_db),
     id: int,
     availability_in: AvailabilityCreate,
-    current_user: User = Depends(get_current_staff),
 ) -> Any:
     """
     Add availability for a doctor.
@@ -154,7 +148,6 @@ def get_doctors_by_specialization(
     *,
     db: Session = Depends(get_db),
     specialization: str,
-    current_user: User = Depends(get_current_user),
 ) -> Any:
     """
     Get doctors by specialization.

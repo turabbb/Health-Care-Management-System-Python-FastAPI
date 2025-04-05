@@ -1,11 +1,12 @@
-import time
-from typing import Callable, Dict
+
+from typing import Callable
 import redis
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.status import HTTP_429_TOO_MANY_REQUESTS
 
 from app.core.config import settings
+
 
 class RateLimiter(BaseHTTPMiddleware):
     def __init__(

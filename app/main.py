@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from sqlalchemy.orm import Session
 import uvicorn
-
 from app.api.routes import patient_router, doctor_router, appointment_router, auth_router
 from app.core.config import settings
 from app.db.session import engine, get_db
@@ -26,6 +25,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Authentication router with no security
 app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
 
 app.include_router(
@@ -71,10 +71,12 @@ def custom_openapi():
         }
     }
 
-    for path in openapi_schema["paths"].values():
-        for method in path.values():
-            if "/auth/" not in method["operationId"]:
-                method.setdefault("security", [{"bearerAuth": []}])
+    for path, path_item in openapi_schema["paths"].items():
+        if path == "/api/auth/login" or path == "/api/auth/register":
+            continue
+
+        for method in path_item.values():
+            method.setdefault("security", [{"bearerAuth": []}])
 
     app.openapi_schema = openapi_schema
     return app.openapi_schema

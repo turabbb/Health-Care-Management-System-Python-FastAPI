@@ -10,7 +10,7 @@ from app.schemas.user import TokenPayload, UserRole
 from app.crud.crud_user import user
 
 oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl="api/auth/login", 
+    tokenUrl="/api/auth/login",
     scheme_name="JWT",
     description="JWT token authentication"
 )

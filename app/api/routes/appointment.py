@@ -3,8 +3,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.orm import Session
-
-from app.api.deps import get_current_user, get_current_staff
+from app.api.deps import get_current_user
 from app.crud.crud_appointment import appointment
 from app.crud.crud_doctor import doctor
 from app.schemas.appointment import Appointment, AppointmentCreate, AppointmentUpdate, AppointmentDetail, AppointmentStatus
@@ -14,6 +13,7 @@ from app.core.notifications import send_appointment_notification
 
 router = APIRouter()
 
+
 @router.get("/", response_model=List[AppointmentDetail])
 def read_appointments(
     db: Session = Depends(get_db),
@@ -21,12 +21,12 @@ def read_appointments(
     limit: int = 100,
     start_date: datetime = None,
     end_date: datetime = None,
-    current_user: User = Depends(get_current_user),
 ) -> Any:
     """
     Retrieve appointments with optional date filtering.
     """
     # If user is a patient, only show their appointments
+    current_user: User = Depends(get_current_user),
     if current_user.role == "patient":
         appointments = appointment.get_by_patient(
             db, patient_id=current_user.reference_id,
@@ -49,13 +49,13 @@ def read_appointments(
 
     return appointments
 
+
 @router.post("/", response_model=Appointment)
 def create_appointment(
     *,
     db: Session = Depends(get_db),
     appointment_in: AppointmentCreate,
     background_tasks: BackgroundTasks,
-    current_user: User = Depends(get_current_user),
 ) -> Any:
     """
     Create new appointment.
@@ -101,16 +101,17 @@ def create_appointment(
 
     return appointment_obj
 
+
 @router.get("/{id}", response_model=AppointmentDetail)
 def read_appointment(
     *,
     db: Session = Depends(get_db),
     id: int,
-    current_user: User = Depends(get_current_user),
 ) -> Any:
     """
     Get appointment by ID.
     """
+    current_user: User = Depends(get_current_user)
     appointment_obj = appointment.get_with_details(db, id=id)
     if not appointment_obj:
         raise HTTPException(status_code=404, detail="Appointment not found")
@@ -124,6 +125,7 @@ def read_appointment(
 
     return appointment_obj
 
+
 @router.put("/{id}", response_model=Appointment)
 def update_appointment(
     *,
@@ -131,11 +133,11 @@ def update_appointment(
     id: int,
     appointment_in: AppointmentUpdate,
     background_tasks: BackgroundTasks,
-    current_user: User = Depends(get_current_user),
 ) -> Any:
     """
     Update an appointment.
     """
+    current_user: User = Depends(get_current_user)
     appointment_obj = appointment.get(db, id=id)
     if not appointment_obj:
         raise HTTPException(status_code=404, detail="Appointment not found")
@@ -176,7 +178,8 @@ def update_appointment(
             )
 
     # Update the appointment
-    appointment_obj = appointment.update(db, db_obj=appointment_obj, obj_in=appointment_in)
+    appointment_obj = appointment.update(
+        db, db_obj=appointment_obj, obj_in=appointment_in)
 
     # Send notification in background
     background_tasks.add_task(
@@ -187,13 +190,13 @@ def update_appointment(
 
     return appointment_obj
 
+
 @router.delete("/{id}", response_model=Appointment)
 def delete_appointment(
     *,
     db: Session = Depends(get_db),
     id: int,
     background_tasks: BackgroundTasks,
-    current_user: User = Depends(get_current_staff),
 ) -> Any:
     """
     Delete an appointment.
@@ -222,6 +225,7 @@ def delete_appointment(
 
     return appointment_obj
 
+
 @router.put("/{id}/status", response_model=Appointment)
 def update_appointment_status(
     *,
@@ -229,7 +233,6 @@ def update_appointment_status(
     id: int,
     status: AppointmentStatus,
     background_tasks: BackgroundTasks,
-    current_user: User = Depends(get_current_staff),
 ) -> Any:
     """
     Update appointment status.
@@ -251,13 +254,13 @@ def update_appointment_status(
 
     return appointment_obj
 
+
 @router.get("/doctor/{doctor_id}/available-slots", response_model=List[dict])
 def get_available_slots(
     *,
     db: Session = Depends(get_db),
     doctor_id: int,
     date: datetime = Query(...),
-    current_user: User = Depends(get_current_user),
 ) -> Any:
     """
     Get available appointment slots for a doctor on a specific date.
