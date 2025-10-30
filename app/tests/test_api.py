@@ -8,6 +8,7 @@ from app.main import app
 from app.db.models import Base
 from app.db.session import get_db
 from app.schemas.user import UserCreate, UserRole
+from app.crud.crud_user import user
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
