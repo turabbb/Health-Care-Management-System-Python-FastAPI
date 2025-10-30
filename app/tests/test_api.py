@@ -164,7 +164,7 @@ def test_create_doctor(admin_token):
     assert data["specialization"] == doctor_data["specialization"]
 
 def test_create_appointment(admin_token, patient_data, doctor_data):
-    tomorrow = datetime.now() + timedelta(days=1)
+    tomorrow = datetime.utcnow() + timedelta(days=1)
     while tomorrow.weekday() != 1:
         tomorrow += timedelta(days=1)
 
@@ -204,13 +204,13 @@ def test_get_appointments(admin_token):
     assert len(data) > 0
 
 def test_get_doctor_available_slots(admin_token, doctor_data):
-    tomorrow = datetime.now() + timedelta(days=1)
+    tomorrow = datetime.utcnow() + timedelta(days=1)
     while tomorrow.weekday() != 1:
         tomorrow += timedelta(days=1)
 
     response = client.get(
         f"/api/appointments/doctor/{doctor_data['id']}/available-slots",
-        params={"date": tomorrow.isoformat()},
+        params={"date": tomorrow.date().isoformat()},
         headers={"Authorization": f"Bearer {admin_token}"}
     )
 
