@@ -55,8 +55,9 @@ class CRUDDoctor(CRUDBase[Doctor, DoctorCreate, DoctorUpdate]):
         if not availabilities:
             return []
 
-        start_of_day = datetime.combine(date.date(), time.min)
-        end_of_day = datetime.combine(date.date(), time.max)
+        # Use date() to ensure naive datetime for comparison
+        start_of_day = datetime.combine(date.date() if hasattr(date, 'date') else date, time.min)
+        end_of_day = datetime.combine(date.date() if hasattr(date, 'date') else date, time.max)
 
         appointments = db.query(Appointment).filter(
             Appointment.doctor_id == doctor_id,
@@ -67,16 +68,21 @@ class CRUDDoctor(CRUDBase[Doctor, DoctorCreate, DoctorUpdate]):
 
         slots = []
         for availability in availabilities:
-            current_time = datetime.combine(date.date(), availability.start_time)
-            end_time = datetime.combine(date.date(), availability.end_time)
+            # Create naive datetime for slot calculation
+            target_date = date.date() if hasattr(date, 'date') else date
+            current_time = datetime.combine(target_date, availability.start_time)
+            end_time = datetime.combine(target_date, availability.end_time)
 
             while current_time + timedelta(minutes=30) <= end_time:
                 slot_end_time = current_time + timedelta(minutes=30)
 
                 is_available = True
                 for appointment in appointments:
-                    if (current_time < appointment.end_time and
-                        slot_end_time > appointment.start_time):
+                    # Convert appointment times to naive for comparison if needed
+                    appt_start = appointment.start_time.replace(tzinfo=None) if hasattr(appointment.start_time, 'tzinfo') and appointment.start_time.tzinfo else appointment.start_time
+                    appt_end = appointment.end_time.replace(tzinfo=None) if hasattr(appointment.end_time, 'tzinfo') and appointment.end_time.tzinfo else appointment.end_time
+                    
+                    if (current_time < appt_end and slot_end_time > appt_start):
                         is_available = False
                         break
 
