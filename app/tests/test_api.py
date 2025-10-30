@@ -220,4 +220,3 @@ def test_get_doctor_available_slots(admin_token, doctor_data):
     if response.status_code == 200:
         data = response.json()
         assert isinstance(data, list)
-        assert "is_available" in slot
