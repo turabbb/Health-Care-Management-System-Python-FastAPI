@@ -93,7 +93,7 @@ jobs:
         
       - name: 📊 Upload Bandit results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: bandit-security-report
           path: bandit-report.json
@@ -172,7 +172,7 @@ jobs:
           name: codecov-healthcare
           
       - name: 📁 Upload coverage HTML
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: htmlcov/
