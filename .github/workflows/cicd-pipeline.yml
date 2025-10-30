@@ -158,7 +158,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_healthcare_db
           REDIS_URL: redis://localhost:6379/0
-          SECRET_KEY: test_secret_key_for_ci_minimum_32_characters_long
+          SECRET_KEY: test_secret_key_ci
           ENVIRONMENT: testing
         run: |
           pytest app/tests/ -v --cov=app --cov-report=xml --cov-report=html --cov-report=term
