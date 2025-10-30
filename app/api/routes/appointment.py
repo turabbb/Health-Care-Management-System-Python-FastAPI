@@ -17,16 +17,16 @@ router = APIRouter()
 @router.get("/", response_model=List[AppointmentDetail])
 def read_appointments(
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
     skip: int = 0,
     limit: int = 100,
     start_date: datetime = None,
-    end_date: datetime = None,
+    end_date: datetime = None
 ) -> Any:
     """
     Retrieve appointments with optional date filtering.
     """
     # If user is a patient, only show their appointments
-    current_user: User = Depends(get_current_user),
     if current_user.role == "patient":
         appointments = appointment.get_by_patient(
             db, patient_id=current_user.reference_id,

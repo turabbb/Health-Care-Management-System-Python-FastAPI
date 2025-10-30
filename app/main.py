@@ -90,7 +90,8 @@ async def root():
 @app.get("/health", tags=["Health"])
 async def health_check(db: Session = Depends(get_db)):
     try:
-        db.execute("SELECT 1")
+        from sqlalchemy import text
+        db.execute(text("SELECT 1"))
         return {"status": "healthy", "database": "connected"}
     except Exception as e:
         raise HTTPException(

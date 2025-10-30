@@ -115,7 +115,7 @@ def test_create_appointment(db: Session):
 
     doctor.add_availability(db, doctor_id=doctor_obj.id, availability=availability_in)
 
-    tomorrow = datetime.now() + timedelta(days=1)
+    tomorrow = datetime.utcnow() + timedelta(days=1)
     while tomorrow.weekday() != 1:
         tomorrow += timedelta(days=1)
 

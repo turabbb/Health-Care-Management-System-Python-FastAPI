@@ -158,10 +158,10 @@ jobs:
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_healthcare_db
           REDIS_URL: redis://localhost:6379/0
-          SECRET_KEY: test_secret_key_for_ci_minimum_32_characters_long
+          SECRET_KEY: test_secret_key_ci
           ENVIRONMENT: testing
         run: |
-          pytest tests/ -v --cov=app --cov-report=xml --cov-report=html --cov-report=term
+          pytest app/tests/ -v --cov=app --cov-report=xml --cov-report=html --cov-report=term
           echo "✅ All tests passed!"
           
       - name: 📊 Upload coverage reports
@@ -205,7 +205,7 @@ jobs:
           images: ${{ env.DOCKER_IMAGE }}
           tags: |
             type=ref,event=branch
-            type=sha,prefix={{branch}}-
+            type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
           
       - name: 🏗️ Build and push Docker image
