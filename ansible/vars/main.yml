@@ -1,0 +1,81 @@
+# =============================================================================
+# ANSIBLE VARIABLES - MAIN
+# Healthcare Management System
+# =============================================================================
+
+---
+# -----------------------------------------------------------------------------
+# PROJECT SETTINGS
+# -----------------------------------------------------------------------------
+project_name: healthcare
+app_name: healthcare-api
+app_user: healthcare
+app_group: healthcare
+app_directory: /opt/healthcare
+app_port: 8000
+
+# -----------------------------------------------------------------------------
+# DOCKER SETTINGS
+# -----------------------------------------------------------------------------
+docker_image: "{{ lookup('env', 'DOCKERHUB_USERNAME') | default('healthcare') }}/healthcare-fastapi"
+docker_tag: "{{ image_tag | default('latest') }}"
+docker_compose_version: "2.21.0"
+
+# -----------------------------------------------------------------------------
+# KUBERNETES SETTINGS
+# -----------------------------------------------------------------------------
+k8s_namespace: "{{ environment }}"
+k8s_replicas: 2
+k8s_cpu_request: "100m"
+k8s_cpu_limit: "500m"
+k8s_memory_request: "256Mi"
+k8s_memory_limit: "512Mi"
+
+# -----------------------------------------------------------------------------
+# DATABASE SETTINGS
+# -----------------------------------------------------------------------------
+db_host: "{{ lookup('env', 'DB_HOST') | default('localhost') }}"
+db_port: 5432
+db_name: healthcare
+db_user: "{{ lookup('env', 'DB_USER') | default('healthcare_admin') }}"
+# db_password should be passed via environment or vault
+# db_password: "{{ lookup('env', 'DB_PASSWORD') }}"
+
+# -----------------------------------------------------------------------------
+# REDIS SETTINGS
+# -----------------------------------------------------------------------------
+redis_host: "{{ lookup('env', 'REDIS_HOST') | default('localhost') }}"
+redis_port: 6379
+
+# -----------------------------------------------------------------------------
+# FEATURE FLAGS
+# -----------------------------------------------------------------------------
+deploy_kubernetes: false
+deploy_monitoring: true
+deploy_nginx: true
+
+# -----------------------------------------------------------------------------
+# PACKAGES TO INSTALL
+# -----------------------------------------------------------------------------
+common_packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg
+  - lsb-release
+  - software-properties-common
+  - python3-pip
+  - python3-venv
+  - git
+  - vim
+  - htop
+  - jq
+  - unzip
+
+# -----------------------------------------------------------------------------
+# HEALTH CHECK SETTINGS
+# -----------------------------------------------------------------------------
+health_check_path: /health
+health_check_interval: 30
+health_check_timeout: 10
+health_check_retries: 3

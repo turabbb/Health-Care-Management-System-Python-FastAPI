@@ -1,0 +1,36 @@
+# =============================================================================
+# KUBERNETES CONFIGMAP
+# Healthcare Management System - Application Configuration
+# =============================================================================
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: healthcare-config
+  labels:
+    app: healthcare-api
+    component: config
+data:
+  # Application settings
+  APP_NAME: "Healthcare Management System"
+  APP_ENV: "production"
+  APP_PORT: "8000"
+  APP_HOST: "0.0.0.0"
+  
+  # Database settings (host comes from service discovery)
+  DB_PORT: "5432"
+  DB_NAME: "healthcare"
+  
+  # Redis settings (host comes from service discovery)
+  REDIS_PORT: "6379"
+  
+  # CORS settings
+  CORS_ORIGINS: "http://localhost:3000,http://localhost:8000,https://healthcare.example.com"
+  
+  # Logging
+  LOG_LEVEL: "INFO"
+  
+  # JWT settings
+  ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+  ALGORITHM: "HS256"

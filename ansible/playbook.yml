@@ -1,0 +1,193 @@
+# =============================================================================
+# MAIN ANSIBLE PLAYBOOK
+# Healthcare Management System - Full Deployment
+# =============================================================================
+# Usage:
+#   ansible-playbook playbook.yml -i inventory/hosts.ini
+#   ansible-playbook playbook.yml -i inventory/hosts.ini --tags "docker"
+#   ansible-playbook playbook.yml -i inventory/hosts.ini -e "environment=prod"
+# =============================================================================
+
+---
+- name: Healthcare System - Infrastructure Setup
+  hosts: all
+  become: yes
+  gather_facts: yes
+  
+  vars:
+    project_name: healthcare
+    environment: "{{ env | default('dev') }}"
+    docker_compose_version: "2.21.0"
+    
+  vars_files:
+    - vars/main.yml
+    - "vars/{{ environment }}.yml"
+  
+  pre_tasks:
+    - name: Display deployment information
+      debug:
+        msg: |
+          ========================================
+          Deploying Healthcare System
+          Environment: {{ environment }}
+          Target hosts: {{ ansible_play_hosts | join(', ') }}
+          ========================================
+      tags: always
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+      tags: always
+
+  roles:
+    - role: common
+      tags: common
+    - role: docker
+      tags: docker
+    - role: kubernetes
+      tags: kubernetes
+      when: deploy_kubernetes | default(false)
+    - role: monitoring
+      tags: monitoring
+      when: deploy_monitoring | default(false)
+
+  post_tasks:
+    - name: Deployment completed
+      debug:
+        msg: "Healthcare system deployment completed successfully!"
+      tags: always
+
+
+# =============================================================================
+# DOCKER DEPLOYMENT PLAYBOOK
+# =============================================================================
+- name: Healthcare System - Docker Deployment
+  hosts: app_servers
+  become: yes
+  gather_facts: yes
+  
+  vars_files:
+    - vars/main.yml
+  
+  tasks:
+    - name: Create application directory
+      file:
+        path: "{{ app_directory }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0755'
+      tags: docker
+
+    - name: Copy docker-compose file
+      template:
+        src: templates/docker-compose.yml.j2
+        dest: "{{ app_directory }}/docker-compose.yml"
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0644'
+      tags: docker
+
+    - name: Copy environment file
+      template:
+        src: templates/env.j2
+        dest: "{{ app_directory }}/.env"
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: '0600'
+      tags: docker
+
+    - name: Pull latest Docker images
+      command: docker compose pull
+      args:
+        chdir: "{{ app_directory }}"
+      register: docker_pull
+      changed_when: "'Pull complete' in docker_pull.stdout"
+      tags: docker
+
+    - name: Deploy application with Docker Compose
+      command: docker compose up -d --remove-orphans
+      args:
+        chdir: "{{ app_directory }}"
+      tags: docker
+
+    - name: Wait for application to be healthy
+      uri:
+        url: "http://localhost:{{ app_port }}/health"
+        method: GET
+        status_code: 200
+      register: health_check
+      until: health_check.status == 200
+      retries: 30
+      delay: 10
+      tags: docker
+
+
+# =============================================================================
+# KUBERNETES DEPLOYMENT PLAYBOOK
+# =============================================================================
+- name: Healthcare System - Kubernetes Deployment
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  vars_files:
+    - vars/main.yml
+  
+  tasks:
+    - name: Create Kubernetes namespace
+      kubernetes.core.k8s:
+        name: "{{ k8s_namespace }}"
+        api_version: v1
+        kind: Namespace
+        state: present
+      tags: kubernetes
+
+    - name: Apply ConfigMap
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ playbook_dir }}/../k8s/{{ environment }}/configmap.yaml"
+        namespace: "{{ k8s_namespace }}"
+      tags: kubernetes
+
+    - name: Apply Secrets
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ playbook_dir }}/../k8s/{{ environment }}/secret.yaml"
+        namespace: "{{ k8s_namespace }}"
+      tags: kubernetes
+
+    - name: Deploy application
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ playbook_dir }}/../k8s/{{ environment }}/deployment.yaml"
+        namespace: "{{ k8s_namespace }}"
+      tags: kubernetes
+
+    - name: Create service
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ playbook_dir }}/../k8s/{{ environment }}/service.yaml"
+        namespace: "{{ k8s_namespace }}"
+      tags: kubernetes
+
+    - name: Wait for deployment to be ready
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        name: healthcare-api
+        namespace: "{{ k8s_namespace }}"
+      register: deployment_status
+      until: >
+        deployment_status.resources[0].status.readyReplicas is defined and
+        deployment_status.resources[0].status.readyReplicas == deployment_status.resources[0].spec.replicas
+      retries: 30
+      delay: 10
+      tags: kubernetes
+
+    - name: Display deployment status
+      debug:
+        msg: "Deployment ready with {{ deployment_status.resources[0].status.readyReplicas }} replicas"
+      tags: kubernetes

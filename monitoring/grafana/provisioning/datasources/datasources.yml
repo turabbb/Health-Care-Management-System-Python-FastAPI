@@ -1,0 +1,35 @@
+# =============================================================================
+# GRAFANA DATA SOURCES PROVISIONING
+# Automatically configure data sources on startup
+# =============================================================================
+
+apiVersion: 1
+
+datasources:
+  # Prometheus Data Source
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: "15s"
+      httpMethod: "POST"
+    version: 1
+
+  # PostgreSQL Data Source (optional - for direct DB queries)
+  - name: PostgreSQL
+    type: postgres
+    url: db:5432
+    database: healthcare
+    user: ${POSTGRES_USER}
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}
+    jsonData:
+      sslmode: disable
+      maxOpenConns: 5
+      maxIdleConns: 2
+      connMaxLifetime: 14400
+    editable: false
+    version: 1

@@ -1,0 +1,53 @@
+# =============================================================================
+# ANSIBLE AWS DYNAMIC INVENTORY PLUGIN
+# Healthcare Management System
+# =============================================================================
+# Usage: ansible-inventory -i aws_ec2.yml --list
+# =============================================================================
+
+plugin: amazon.aws.aws_ec2
+
+# AWS Region
+regions:
+  - us-east-1
+
+# Credentials (use environment variables or IAM role)
+# aws_access_key: "{{ lookup('env', 'AWS_ACCESS_KEY_ID') }}"
+# aws_secret_key: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY') }}"
+
+# Filter instances by tags
+filters:
+  tag:Project:
+    - healthcare
+  instance-state-name:
+    - running
+
+# Keyed groups based on tags
+keyed_groups:
+  # Group by Environment tag
+  - key: tags.Environment
+    prefix: env
+    separator: "_"
+  
+  # Group by Role tag
+  - key: tags.Role
+    prefix: role
+    separator: "_"
+  
+  # Group by AWS availability zone
+  - key: placement.availability_zone
+    prefix: az
+    separator: "_"
+
+# Host variables
+hostnames:
+  - private-ip-address
+  - dns-name
+  - tag:Name
+
+# Compose variables for hosts
+compose:
+  ansible_host: private_ip_address
+  ansible_user: "'ubuntu'"
+  ec2_instance_type: instance_type
+  ec2_availability_zone: placement.availability_zone

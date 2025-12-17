@@ -1,0 +1,75 @@
+# =============================================================================
+# MONITORING ROLE - TASKS
+# Install and configure Prometheus and Grafana
+# =============================================================================
+
+---
+- name: Create monitoring directory
+  file:
+    path: "{{ app_directory }}/monitoring"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: '0755'
+  tags: monitoring
+
+- name: Copy Prometheus configuration
+  template:
+    src: prometheus.yml.j2
+    dest: "{{ app_directory }}/monitoring/prometheus.yml"
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: '0644'
+  tags: monitoring
+
+- name: Copy Grafana provisioning files
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ app_directory }}/monitoring/{{ item.dest }}"
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: '0644'
+  loop:
+    - { src: grafana/datasources.yml, dest: grafana/provisioning/datasources/datasources.yml }
+    - { src: grafana/dashboards.yml, dest: grafana/provisioning/dashboards/dashboards.yml }
+  tags: monitoring
+
+- name: Deploy monitoring stack with Docker Compose
+  docker_compose:
+    project_src: "{{ app_directory }}"
+    files:
+      - docker-compose.yml
+    profiles:
+      - monitoring
+    state: present
+  tags: monitoring
+
+- name: Wait for Prometheus to be ready
+  uri:
+    url: "http://localhost:9090/-/ready"
+    method: GET
+    status_code: 200
+  register: prometheus_health
+  until: prometheus_health.status == 200
+  retries: 30
+  delay: 5
+  tags: monitoring
+
+- name: Wait for Grafana to be ready
+  uri:
+    url: "http://localhost:3000/api/health"
+    method: GET
+    status_code: 200
+  register: grafana_health
+  until: grafana_health.status == 200
+  retries: 30
+  delay: 5
+  tags: monitoring
+
+- name: Display monitoring URLs
+  debug:
+    msg: |
+      Monitoring stack deployed successfully!
+      - Prometheus: http://localhost:9090
+      - Grafana: http://localhost:3000 (admin/admin)
+  tags: monitoring

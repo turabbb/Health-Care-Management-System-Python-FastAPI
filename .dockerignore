@@ -1,0 +1,74 @@
+# =============================================================================
+# DOCKER IGNORE FILE
+# Files and directories to exclude from Docker build context
+# =============================================================================
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.env
+.venv
+env/
+venv/
+ENV/
+.eggs/
+*.egg-info/
+*.egg
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Documentation
+docs/
+*.md
+!README.md
+LICENSE
+
+# Testing
+tests/
+test_*.py
+*_test.py
+conftest.py
+pytest.ini
+
+# Infrastructure (not needed in container)
+infra/
+terraform/
+ansible/
+k8s/
+monitoring/
+.github/
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+.docker/
+
+# Misc
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+
+# Secrets (should never be in image)
+*.pem
+*.key
+secrets/

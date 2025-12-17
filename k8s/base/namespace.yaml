@@ -1,0 +1,23 @@
+# =============================================================================
+# KUBERNETES NAMESPACE
+# Healthcare Management System
+# =============================================================================
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: healthcare-dev
+  labels:
+    name: healthcare-dev
+    environment: dev
+    project: healthcare
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: healthcare-prod
+  labels:
+    name: healthcare-prod
+    environment: prod
+    project: healthcare

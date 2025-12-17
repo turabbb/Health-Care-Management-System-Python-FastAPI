@@ -1,0 +1,31 @@
+# =============================================================================
+# ANSIBLE VARIABLES - DEVELOPMENT ENVIRONMENT
+# Healthcare Management System
+# =============================================================================
+
+---
+environment: dev
+
+# Deployment settings
+k8s_replicas: 1
+k8s_cpu_request: "50m"
+k8s_cpu_limit: "200m"
+k8s_memory_request: "128Mi"
+k8s_memory_limit: "256Mi"
+
+# Database settings (for local development)
+db_host: localhost
+db_port: 5432
+db_name: healthcare
+
+# Redis settings (for local development)
+redis_host: localhost
+redis_port: 6379
+
+# Feature flags
+deploy_monitoring: false
+deploy_nginx: false
+debug_mode: true
+
+# Docker settings
+docker_tag: "dev"

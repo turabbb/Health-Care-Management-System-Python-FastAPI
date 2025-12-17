@@ -1,13 +1,51 @@
-FROM python:3.11-slim
+# =============================================================================
+# MULTI-STAGE DOCKERFILE FOR NOTIFICATION SERVICE
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# STAGE 1: BUILDER
+# -----------------------------------------------------------------------------
+FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+# Create virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
 COPY requirements.notification.txt .
-RUN pip install --no-cache-dir -r requirements.notification.txt
+RUN pip install --upgrade pip \
+    && pip install --no-cache-dir -r requirements.notification.txt
 
-COPY notification_service.py .
+# -----------------------------------------------------------------------------
+# STAGE 2: PRODUCTION
+# -----------------------------------------------------------------------------
+FROM python:3.11-slim AS production
+
+LABEL maintainer="Healthcare DevOps Team" \
+      version="1.0.0" \
+      description="Healthcare Notification Service"
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/opt/venv/bin:$PATH"
+
+# Create non-root user
+RUN groupadd --gid 1000 appgroup \
+    && useradd --uid 1000 --gid appgroup --shell /bin/bash --create-home appuser
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+
+# Copy application code
+COPY --chown=appuser:appgroup notification_service.py .
+
+USER appuser
 
 CMD ["python", "notification_service.py"]

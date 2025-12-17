@@ -1,0 +1,68 @@
+# =============================================================================
+# KUSTOMIZATION FILE - DEV ENVIRONMENT
+# Healthcare Management System
+# =============================================================================
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: healthcare-dev
+
+# Common labels for all resources
+commonLabels:
+  environment: dev
+  project: healthcare
+
+# Base resources
+resources:
+  - ../../base/namespace.yaml
+  - ../../base/configmap.yaml
+  - ../../base/secret.yaml
+  - ../../base/deployment.yaml
+  - ../../base/service.yaml
+  - ../../base/redis-deployment.yaml
+  - ../../base/rabbitmq-deployment.yaml
+  - ../../base/rbac.yaml
+
+# Image customization for dev
+images:
+  - name: ${DOCKER_IMAGE}
+    newName: healthcare/healthcare-fastapi
+    newTag: dev
+
+# Patches for dev environment
+patches:
+  # Reduce replicas for dev
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: healthcare-api
+  
+  # Reduce resource limits for dev
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: "50m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "128Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "200m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "256Mi"
+    target:
+      kind: Deployment
+      name: healthcare-api
+
+# ConfigMap patches
+configMapGenerator:
+  - name: healthcare-config
+    behavior: merge
+    literals:
+      - APP_ENV=development
+      - LOG_LEVEL=DEBUG

@@ -3,11 +3,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from sqlalchemy.orm import Session
 import uvicorn
+import os
 from app.api.routes import patient_router, doctor_router, appointment_router, auth_router
 from app.core.config import settings
 from app.db.session import engine, get_db
 from app.db import models
 from app.api.deps import get_current_user
+
+# Import metrics (Prometheus)
+from app.core.metrics import PrometheusMiddleware, metrics_endpoint, set_app_info
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -17,6 +21,15 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Add Prometheus metrics middleware
+app.add_middleware(PrometheusMiddleware)
+
+# Set application info for metrics
+set_app_info(
+    version="1.0.0",
+    environment=os.getenv("ENVIRONMENT", "development")
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -24,6 +37,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Metrics endpoint for Prometheus scraping
+app.add_api_route("/metrics", metrics_endpoint, methods=["GET"], tags=["Monitoring"])
 
 # Authentication router with no security
 app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])

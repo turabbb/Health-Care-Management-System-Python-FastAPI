@@ -1,0 +1,148 @@
+# =============================================================================
+# KUBERNETES DEPLOYMENT PLAYBOOK (Standalone)
+# For deploying directly to Kubernetes without full setup
+# =============================================================================
+# Usage:
+#   ansible-playbook deploy-k8s.yml -e "environment=dev"
+#   ansible-playbook deploy-k8s.yml -e "environment=prod image_tag=v1.0.0"
+# =============================================================================
+
+---
+- name: Deploy Healthcare System to Kubernetes
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  vars:
+    environment: "{{ env | default('dev') }}"
+    k8s_namespace: "healthcare-{{ environment }}"
+    docker_image: "{{ lookup('env', 'DOCKERHUB_USERNAME') }}/healthcare-fastapi"
+    image_tag: "{{ tag | default('latest') }}"
+    
+  vars_files:
+    - vars/main.yml
+    - "vars/{{ environment }}.yml"
+  
+  tasks:
+    - name: Display deployment info
+      debug:
+        msg: |
+          ========================================
+          Kubernetes Deployment
+          Environment: {{ environment }}
+          Namespace: {{ k8s_namespace }}
+          Image: {{ docker_image }}:{{ image_tag }}
+          ========================================
+      tags: always
+
+    - name: Create namespace
+      kubernetes.core.k8s:
+        name: "{{ k8s_namespace }}"
+        api_version: v1
+        kind: Namespace
+        state: present
+        definition:
+          metadata:
+            labels:
+              environment: "{{ environment }}"
+              project: healthcare
+      tags: namespace
+
+    - name: Apply ConfigMap
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ k8s_namespace }}"
+        definition: "{{ lookup('template', '../k8s/base/configmap.yaml') | from_yaml }}"
+      tags: config
+
+    - name: Apply Secrets
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ k8s_namespace }}"
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: healthcare-secrets
+          type: Opaque
+          stringData:
+            SECRET_KEY: "{{ lookup('env', 'SECRET_KEY') }}"
+            DATABASE_URL: "{{ lookup('env', 'DATABASE_URL') }}"
+            REDIS_URL: "{{ lookup('env', 'REDIS_URL') }}"
+      tags: secrets
+      no_log: true
+
+    - name: Deploy Redis
+      kubernetes.core.k8s:
+        state: present
+        src: "../k8s/base/redis-deployment.yaml"
+        namespace: "{{ k8s_namespace }}"
+      tags: redis
+
+    - name: Deploy Application
+      kubernetes.core.k8s:
+        state: present
+        namespace: "{{ k8s_namespace }}"
+        definition: "{{ lookup('template', '../k8s/base/deployment.yaml') | from_yaml }}"
+      tags: app
+
+    - name: Create Service
+      kubernetes.core.k8s:
+        state: present
+        src: "../k8s/base/service.yaml"
+        namespace: "{{ k8s_namespace }}"
+      tags: service
+
+    - name: Wait for deployment
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        name: healthcare-api
+        namespace: "{{ k8s_namespace }}"
+      register: deployment
+      until: >
+        deployment.resources | length > 0 and
+        deployment.resources[0].status.readyReplicas is defined and
+        deployment.resources[0].status.readyReplicas >= 1
+      retries: 60
+      delay: 10
+      tags: verify
+
+    - name: Get pods status
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        namespace: "{{ k8s_namespace }}"
+        label_selectors:
+          - app=healthcare-api
+      register: pods
+      tags: verify
+
+    - name: Display pod status
+      debug:
+        msg: |
+          Pod: {{ item.metadata.name }}
+          Status: {{ item.status.phase }}
+          Ready: {{ item.status.containerStatuses[0].ready | default(false) }}
+      loop: "{{ pods.resources }}"
+      tags: verify
+
+    - name: Run smoke test
+      uri:
+        url: "http://{{ item.status.podIP }}:8000/health"
+        method: GET
+        status_code: 200
+      loop: "{{ pods.resources }}"
+      when: item.status.phase == 'Running'
+      register: smoke_test
+      tags: test
+
+    - name: Deployment complete
+      debug:
+        msg: |
+          ========================================
+          Deployment Successful!
+          Namespace: {{ k8s_namespace }}
+          Pods Running: {{ pods.resources | selectattr('status.phase', 'equalto', 'Running') | list | length }}
+          ========================================
+      tags: always

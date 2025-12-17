@@ -1,0 +1,77 @@
+# =============================================================================
+# KUSTOMIZATION FILE - PROD ENVIRONMENT
+# Healthcare Management System
+# =============================================================================
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: healthcare-prod
+
+# Common labels for all resources
+commonLabels:
+  environment: prod
+  project: healthcare
+
+# Base resources
+resources:
+  - ../base/namespace.yaml
+  - ../base/configmap.yaml
+  - ../base/secret.yaml
+  - ../base/deployment.yaml
+  - ../base/service.yaml
+  - ../base/redis-deployment.yaml
+  - ../base/rabbitmq-deployment.yaml
+  - ../base/ingress.yaml
+  - ../base/hpa.yaml
+  - ../base/rbac.yaml
+
+# Image customization for prod
+images:
+  - name: ${DOCKER_IMAGE}
+    newName: healthcare/healthcare-fastapi
+    newTag: latest
+
+# Patches for prod environment
+patches:
+  # Increase replicas for prod
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+    target:
+      kind: Deployment
+      name: healthcare-api
+  
+  # Increase resource limits for prod
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: "200m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "512Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "1000m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "1Gi"
+    target:
+      kind: Deployment
+      name: healthcare-api
+
+# ConfigMap patches
+configMapGenerator:
+  - name: healthcare-config
+    behavior: merge
+    literals:
+      - APP_ENV=production
+      - LOG_LEVEL=WARNING
+
+# Secret patches (use external secrets in real production)
+secretGenerator:
+  - name: healthcare-secrets
+    behavior: merge
+    literals:
+      - SECRET_KEY=${SECRET_KEY}

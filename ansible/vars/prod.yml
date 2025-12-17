@@ -1,0 +1,36 @@
+# =============================================================================
+# ANSIBLE VARIABLES - PRODUCTION ENVIRONMENT
+# Healthcare Management System
+# =============================================================================
+
+---
+environment: prod
+
+# Deployment settings
+k8s_replicas: 3
+k8s_cpu_request: "200m"
+k8s_cpu_limit: "1000m"
+k8s_memory_request: "512Mi"
+k8s_memory_limit: "1Gi"
+
+# Database settings (from Terraform outputs)
+# These should be overridden with actual values from terraform output
+db_host: "{{ lookup('env', 'RDS_ENDPOINT') }}"
+db_port: 5432
+db_name: healthcare
+
+# Redis settings (from Terraform outputs)
+redis_host: "{{ lookup('env', 'REDIS_ENDPOINT') }}"
+redis_port: 6379
+
+# Feature flags
+deploy_monitoring: true
+deploy_nginx: true
+debug_mode: false
+
+# Docker settings
+docker_tag: "{{ lookup('env', 'IMAGE_TAG') | default('latest') }}"
+
+# SSL/TLS
+enable_ssl: true
+ssl_certificate_arn: "{{ lookup('env', 'SSL_CERTIFICATE_ARN') }}"

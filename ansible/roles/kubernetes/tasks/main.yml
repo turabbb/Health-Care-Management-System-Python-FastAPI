@@ -1,0 +1,87 @@
+# =============================================================================
+# KUBERNETES ROLE - TASKS
+# Configure kubectl and deploy to Kubernetes
+# =============================================================================
+
+---
+- name: Create .kube directory
+  file:
+    path: "{{ ansible_env.HOME }}/.kube"
+    state: directory
+    mode: '0700'
+  tags: kubernetes
+
+- name: Configure kubectl for EKS
+  shell: |
+    aws eks update-kubeconfig \
+      --region {{ aws_region | default('us-east-1') }} \
+      --name {{ eks_cluster_name }}
+  environment:
+    AWS_ACCESS_KEY_ID: "{{ lookup('env', 'AWS_ACCESS_KEY_ID') }}"
+    AWS_SECRET_ACCESS_KEY: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY') }}"
+  when: eks_cluster_name is defined
+  tags: kubernetes
+
+- name: Create Kubernetes namespace
+  kubernetes.core.k8s:
+    name: "{{ k8s_namespace }}"
+    api_version: v1
+    kind: Namespace
+    state: present
+  tags: kubernetes
+
+- name: Create image pull secret
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: dockerhub-credentials
+        namespace: "{{ k8s_namespace }}"
+      type: kubernetes.io/dockerconfigjson
+      data:
+        .dockerconfigjson: "{{ lookup('template', 'docker-config.json.j2') | b64encode }}"
+  when: lookup('env', 'DOCKERHUB_USERNAME') != ''
+  tags: kubernetes
+
+- name: Apply Kubernetes manifests
+  kubernetes.core.k8s:
+    state: present
+    src: "{{ item }}"
+    namespace: "{{ k8s_namespace }}"
+  loop:
+    - "{{ playbook_dir }}/../k8s/{{ environment }}/configmap.yaml"
+    - "{{ playbook_dir }}/../k8s/{{ environment }}/secret.yaml"
+    - "{{ playbook_dir }}/../k8s/{{ environment }}/deployment.yaml"
+    - "{{ playbook_dir }}/../k8s/{{ environment }}/service.yaml"
+  tags: kubernetes
+
+- name: Wait for deployment rollout
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: healthcare-api
+    namespace: "{{ k8s_namespace }}"
+  register: deployment
+  until: >
+    deployment.resources[0].status.readyReplicas is defined and
+    deployment.resources[0].status.readyReplicas == deployment.resources[0].spec.replicas
+  retries: 60
+  delay: 10
+  tags: kubernetes
+
+- name: Get service information
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Service
+    name: healthcare-api
+    namespace: "{{ k8s_namespace }}"
+  register: service_info
+  tags: kubernetes
+
+- name: Display service endpoint
+  debug:
+    msg: "Application available at: {{ service_info.resources[0].status.loadBalancer.ingress[0].hostname | default('pending') }}"
+  when: service_info.resources | length > 0
+  tags: kubernetes

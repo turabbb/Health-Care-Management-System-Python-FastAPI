@@ -1,0 +1,111 @@
+# =============================================================================
+# KUBERNETES SERVICE
+# Healthcare Management System - Service Definitions
+# =============================================================================
+
+---
+# Main API Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: healthcare-api
+  labels:
+    app: healthcare-api
+    component: backend
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+spec:
+  type: ClusterIP
+  selector:
+    app: healthcare-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+      protocol: TCP
+
+---
+# Load Balancer Service (for external access)
+apiVersion: v1
+kind: Service
+metadata:
+  name: healthcare-api-lb
+  labels:
+    app: healthcare-api
+    component: backend
+  annotations:
+    # AWS Load Balancer Controller annotations
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+spec:
+  type: LoadBalancer
+  selector:
+    app: healthcare-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+      protocol: TCP
+
+---
+# Database Service (for internal communication)
+apiVersion: v1
+kind: Service
+metadata:
+  name: healthcare-db
+  labels:
+    app: healthcare-db
+    component: database
+spec:
+  type: ClusterIP
+  selector:
+    app: healthcare-db
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+      protocol: TCP
+
+---
+# Redis Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: healthcare-redis
+  labels:
+    app: healthcare-redis
+    component: cache
+spec:
+  type: ClusterIP
+  selector:
+    app: healthcare-redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+      protocol: TCP
+
+---
+# RabbitMQ Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: healthcare-rabbitmq
+  labels:
+    app: healthcare-rabbitmq
+    component: queue
+spec:
+  type: ClusterIP
+  selector:
+    app: healthcare-rabbitmq
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: 5672
+      protocol: TCP
+    - name: management
+      port: 15672
+      targetPort: 15672
+      protocol: TCP

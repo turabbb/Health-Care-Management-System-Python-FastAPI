@@ -1,0 +1,37 @@
+# =============================================================================
+# LOCALSTACK - FREE LOCAL AWS EMULATOR
+# =============================================================================
+# This runs a local "fake AWS" on your computer
+# You can run Terraform against it without ANY real AWS charges!
+# =============================================================================
+version: '3.8'
+
+services:
+  # ===========================================================================
+  # LOCALSTACK - Simulates AWS Services Locally (FREE!)
+  # ===========================================================================
+  localstack:
+    image: localstack/localstack:latest
+    container_name: localstack
+    ports:
+      - "4566:4566"           # Main LocalStack endpoint
+      - "4510-4559:4510-4559" # External service ports
+    environment:
+      - SERVICES=ec2,s3,rds,iam,sts,vpc,secretsmanager
+      - DEBUG=1
+      - DATA_DIR=/var/lib/localstack/data
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - localstack-network
+
+networks:
+  localstack-network:
+    driver: bridge
+    name: localstack-network
+
+volumes:
+  localstack_data:
+    name: localstack-data
