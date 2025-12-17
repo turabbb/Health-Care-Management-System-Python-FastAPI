@@ -15,13 +15,13 @@ router = APIRouter()
 
 @router.get("/", response_model=List[Patient])
 def read_patients(
+    db: Session = Depends(get_db),
     skip: int = 0,
     limit: int = 100,
 ) -> Any:
     """
     Retrieve patients.
     """
-    db: Session = Depends(get_db)
     patients = patient.get_multi(db, skip=skip, limit=limit)
     return patients
 
@@ -29,12 +29,12 @@ def read_patients(
 @router.post("/", response_model=Patient)
 def create_patient(
     *,
+    db: Session = Depends(get_db),
     patient_in: PatientCreate,
 ) -> Any:
     """
     Create new patient.
     """
-    db: Session = Depends(get_db)
     existing_patient = patient.get_by_email(db, email=patient_in.email)
     if existing_patient:
         raise HTTPException(
@@ -56,13 +56,13 @@ def create_patient(
 @router.get("/{id}", response_model=Patient)
 def read_patient(
     *,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
     id: int,
 ) -> Any:
     """
     Get patient by ID.
     """
-    db: Session = Depends(get_db)
-    current_user: User = Depends(get_current_user),
     patient_obj = patient.get(db, id=id)
     if not patient_obj:
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -76,13 +76,13 @@ def read_patient(
 @router.put("/{id}", response_model=Patient)
 def update_patient(
     *,
+    db: Session = Depends(get_db),
     id: int,
     patient_in: PatientUpdate,
 ) -> Any:
     """
     Update a patient.
     """
-    db: Session = Depends(get_db)
     patient_obj = patient.get(db, id=id)
     if not patient_obj:
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -102,12 +102,12 @@ def update_patient(
 @router.delete("/{id}", response_model=Patient)
 def delete_patient(
     *,
+    db: Session = Depends(get_db),
     id: int,
 ) -> Any:
     """
     Delete a patient.
     """
-    db: Session = Depends(get_db)
     patient_obj = patient.get(db, id=id)
     if not patient_obj:
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -119,12 +119,11 @@ def delete_patient(
 @router.get("/search/", response_model=List[Patient])
 def search_patients(
     *,
+    db: Session = Depends(get_db),
     query: str = Query(..., min_length=3),
-
 ) -> Any:
     """
     Search for patients by name or email.
     """
-    db: Session = Depends(get_db)
     patients = patient.search(db, query=query)
     return patients
