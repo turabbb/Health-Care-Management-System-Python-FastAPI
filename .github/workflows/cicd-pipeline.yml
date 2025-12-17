@@ -187,6 +187,7 @@ jobs:
           REDIS_URL: redis://localhost:6379/0
           SECRET_KEY: test_secret_key_for_ci_minimum_32_characters_long
           ENVIRONMENT: testing
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           pytest app/tests/ -v --cov=app --cov-report=xml --cov-report=html --cov-report=term
           echo "✅ All tests passed!"
