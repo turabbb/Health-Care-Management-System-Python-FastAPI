@@ -1,6 +1,7 @@
 import pytest
 from datetime import datetime, timedelta, time
-from sqlalchemy.orm import Session
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
 
 from app.schemas.patient import PatientCreate
 from app.schemas.doctor import DoctorCreate, AvailabilityCreate
@@ -10,10 +11,21 @@ from app.crud.crud_patient import patient
 from app.crud.crud_doctor import doctor
 from app.crud.crud_appointment import appointment
 from app.crud.crud_user import user
+from app.db.models import Base
+
+# Create test database
+SQLALCHEMY_DATABASE_URL = "sqlite:///./test_crud.db"
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+@pytest.fixture(scope="module")
+def test_db():
+    Base.metadata.create_all(bind=engine)
+    yield
+    Base.metadata.drop_all(bind=engine)
 
 @pytest.fixture
 def db(test_db):
-    from app.tests.test_api import TestingSessionLocal
     db = TestingSessionLocal()
     try:
         yield db

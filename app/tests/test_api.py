@@ -8,6 +8,7 @@ from app.main import app
 from app.db.models import Base
 from app.db.session import get_db
 from app.schemas.user import UserCreate, UserRole
+from app.crud.crud_user import user
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -104,7 +105,10 @@ def doctor_data(test_db, admin_token):
 def test_health_check():
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json()["status"] == "healthy"
+    data = response.json()
+    assert data["status"] == "healthy"
+    assert data["service"] == "healthcare-api"
+    assert data["version"] == "1.0.0"
 
 def test_create_patient(admin_token):
     patient_data = {

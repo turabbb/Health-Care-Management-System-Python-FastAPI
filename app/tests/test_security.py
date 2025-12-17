@@ -1,5 +1,5 @@
 from jose import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.core.security import create_access_token, verify_password, get_password_hash
 from app.core.config import settings
@@ -17,7 +17,7 @@ def test_create_access_token():
     assert payload["role"] == role
 
     exp = datetime.fromtimestamp(payload["exp"])
-    now = datetime.now(datetime.timezone.utc)()
+    now = datetime.utcnow()
     assert exp > now
     assert exp < now + timedelta(minutes=31)
 

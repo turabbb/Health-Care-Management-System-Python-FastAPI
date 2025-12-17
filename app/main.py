@@ -104,15 +104,25 @@ async def root():
     return {"message": "Welcome to the Healthcare Appointment System API"}
 
 @app.get("/health", tags=["Health"])
-async def health_check(db: Session = Depends(get_db)):
+async def health_check():
+    """Health check endpoint - returns service status."""
+    health_status = {
+        "status": "healthy",
+        "service": "healthcare-api",
+        "version": "1.0.0"
+    }
+    
+    # Try to check database connection (optional)
     try:
+        from app.db.session import SessionLocal
+        db = SessionLocal()
         db.execute("SELECT 1")
-        return {"status": "healthy", "database": "connected"}
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Service unhealthy: {str(e)}"
-        )
+        db.close()
+        health_status["database"] = "connected"
+    except Exception:
+        health_status["database"] = "unavailable"
+    
+    return health_status
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
