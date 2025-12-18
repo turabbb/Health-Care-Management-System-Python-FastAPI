@@ -3,8 +3,11 @@
 ## Healthcare Management System - Final Exam Project
 
 **Team Member 1:** Ali Turab, FA22-BSE-003
+
 **Team Member 2:** Abdul Ahad, FA22-BSE-009
+
 **Team Member 3:** Muhammad Umar, FA22-BSE-157
+
 **Date:** December 18, 2025  
 **Repository:** https://github.com/turabbb/Health-Care-Management-System-Python-FastAPI
 
